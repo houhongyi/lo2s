@@ -22,6 +22,7 @@
 #include <lo2s/process_controller.hpp>
 
 #include <lo2s/error.hpp>
+#include <lo2s/java/resolve.hpp>
 #include <lo2s/log.hpp>
 #include <lo2s/summary.hpp>
 #include <lo2s/trace/trace.hpp>
@@ -267,6 +268,8 @@ void ProcessController::handle_signal(pid_t child, int status)
             // exit if detached from first child (the original sampled process)
             if (child == first_child_)
             {
+                java::JVMSymbols::instance->read_symbols();
+
                 Log::info() << "Exiting monitor with status " << 0;
                 throw std::system_error(0, std::system_category());
             }
