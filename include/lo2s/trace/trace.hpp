@@ -105,7 +105,7 @@ private:
      *  multiple threads via #add_threads.
      **/
     void add_thread_exclusive(pid_t tid, const std::string& name,
-                              const std::lock_guard<std::mutex>&);
+                              const std::lock_guard<std::recursive_mutex>&);
 
     void update_process_name(pid_t pid, const otf2::definition::string& name);
     void update_thread_name(pid_t tid, const otf2::definition::string& name);
