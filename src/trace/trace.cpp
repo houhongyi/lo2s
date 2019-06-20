@@ -876,6 +876,8 @@ otf2::definition::region Trace::intern_region(const LineInfo& info)
 
 otf2::definition::string Trace::intern(const std::string& name)
 {
+    std::lock_guard<std::mutex> guard(thread_mutex_);
+
     auto ret = strings_.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                 std::forward_as_tuple(string_ref(), name));
     return ret.first->second;
