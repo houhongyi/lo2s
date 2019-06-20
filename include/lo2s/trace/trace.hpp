@@ -278,8 +278,7 @@ private:
     void add_lo2s_property(const std::string& name, const std::string& value);
 
 private:
-    std::mutex mutex_;
-    std::mutex thread_mutex_;
+    std::recursive_mutex mutex_;
 
     otf2::chrono::time_point starting_time_;
     otf2::chrono::time_point stopping_time_;

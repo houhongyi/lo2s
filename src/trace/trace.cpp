@@ -401,7 +401,7 @@ void Trace::update_process_name(pid_t pid, const std::string& name)
 void Trace::update_thread_name(pid_t tid, const otf2::definition::string& name)
 {
     // TODO we call this function in a hot-loop, locking doesn't sound like a good idea
-    std::lock_guard<std::mutex> guard(thread_mutex_);
+    std::lock_guard<std::mutex> guard(mutex_);
 
     auto loc_it = thread_sample_locations_.find(tid);
 
@@ -450,7 +450,7 @@ void Trace::add_cpu(int cpuid)
 otf2::writer::local& Trace::thread_sample_writer(pid_t pid, pid_t tid)
 {
     // TODO we call this function in a hot-loop, locking doesn't sound like a good idea
-    std::lock_guard<std::mutex> guard(thread_mutex_);
+    std::lock_guard<std::mutex> guard(mutex_);
 
     auto name = (boost::format("thread %d") % tid).str();
 
@@ -876,7 +876,7 @@ otf2::definition::region Trace::intern_region(const LineInfo& info)
 
 otf2::definition::string Trace::intern(const std::string& name)
 {
-    std::lock_guard<std::mutex> guard(thread_mutex_);
+    std::lock_guard<std::mutex> guard(mutex_);
 
     auto ret = strings_.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                 std::forward_as_tuple(string_ref(), name));
