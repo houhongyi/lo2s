@@ -85,7 +85,7 @@ void MemoryMap::mmap(const RawMemoryMapEntry& entry)
     if (entry.filename.empty() || std::string("//anon") == entry.filename ||
         std::string("/dev/zero") == entry.filename ||
         std::string("/anon_hugepage") == entry.filename ||
-        boost::starts_with(entry.filename, "/SYSV"))
+        boost::starts_with(entry.filename, "/SYSV") || boost::ends_with(entry.filename, ".jsa"))
     {
         Log::debug() << "mmap: skipping dso: " << entry.filename << " (known non-library)";
         return;
