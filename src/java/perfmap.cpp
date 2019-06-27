@@ -22,6 +22,7 @@
  */
 
 #include <lo2s/ipc/fifo.hpp>
+#include <lo2s/java/jni_signature.hpp>
 #include <lo2s/log.hpp>
 
 #include <iomanip>
@@ -48,8 +49,6 @@ static void JNICALL cbCompiledMethodLoad(jvmtiEnv* jvmti, jmethodID method, jint
                                          const void* address, jint map_length,
                                          const jvmtiAddrLocationMap* map, const void* compile_info)
 {
-    Log::info() << "JNI lo2s plugin: cbCompiledMethodLoad";
-
     (void)jvmti;
     (void)method;
     (void)code_size;
@@ -63,45 +62,57 @@ static void JNICALL cbCompiledMethodLoad(jvmtiEnv* jvmti, jmethodID method, jint
         return;
     }
 
+    jclass cls;
+
+    jvmti->GetMethodDeclaringClass(method, &cls);
+
+    char* class_signature_ptr;
+
+    jvmti->GetClassSignature(cls, &class_signature_ptr, nullptr);
+
+    std::string class_str = class_signature_ptr;
+
     char* name_ptr;
     char* signature_ptr;
-    char* generic_ptr;
 
-    jvmti->GetMethodName(method, &name_ptr, &signature_ptr, &generic_ptr);
+    jvmti->GetMethodName(method, &name_ptr, &signature_ptr, nullptr);
 
-    auto log_entry = Log::info() << std::hex << reinterpret_cast<std::uint64_t>(address) << " "
-                                 << std::dec << code_size << ": " << *name_ptr;
+    std::string symbol_name;
 
+    if (class_signature_ptr)
     {
-        int len = code_size;
-        std::string name_str = name_ptr;
+        symbol_name = lo2s::java::parse_type(class_signature_ptr) + "::";
+        jvmti->Deallocate((unsigned char*)class_signature_ptr);
+    }
 
-        fifo->write(reinterpret_cast<std::uint64_t>(address));
-        fifo->write(len);
-        fifo->write(name_str);
+    if (name_ptr)
+    {
+        symbol_name += name_ptr;
+        jvmti->Deallocate((unsigned char*)name_ptr);
     }
 
     if (signature_ptr)
     {
-        log_entry << " | " << *signature_ptr;
-
+        symbol_name += lo2s::java::parse_signature(signature_ptr);
         jvmti->Deallocate((unsigned char*)signature_ptr);
     }
 
-    if (generic_ptr)
-    {
-        log_entry << " | " << *generic_ptr;
-        jvmti->Deallocate((unsigned char*)generic_ptr);
-    }
+    Log::info() << std::hex << reinterpret_cast<std::uint64_t>(address) << " " << std::dec
+                << code_size << ": " << symbol_name;
 
-    jvmti->Deallocate((unsigned char*)name_ptr);
+    if (!symbol_name.empty())
+    {
+        int len = code_size;
+
+        fifo->write(reinterpret_cast<std::uint64_t>(address));
+        fifo->write(len);
+        fifo->write(symbol_name);
+    }
 }
 
 void JNICALL cbDynamicCodeGenerated(jvmtiEnv* jvmti, const char* name, const void* address,
                                     jint length)
 {
-    Log::info() << "JNI lo2s plugin: cbDynamicCodeGenerated";
-
     (void)jvmti;
 
     if (!fifo)
@@ -160,7 +171,7 @@ void set_notification_mode(jvmtiEnv* jvmti, jvmtiEventMode mode)
 
 extern "C"
 {
-    JNIEXPORT jint JNICALL Agent_OnAttach(JavaVM* vm, char* options, void* reserved)
+    JNIEXPORT jint JNICALL Agent_OnAttach(JavaVM* vm, char*, void*)
     {
         Log::info() << "Loading JNI lo2s plugin";
         try
