@@ -19,7 +19,7 @@
  * along with lo2s.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <lo2s/metric/perf_counter.hpp>
+#include <lo2s/perf/counter/perf_counter.hpp>
 
 #include <lo2s/build_config.hpp>
 #include <lo2s/config.hpp>
@@ -41,7 +41,9 @@ extern "C"
 
 namespace lo2s
 {
-namespace metric
+namespace perf
+{
+namespace counter
 {
 
 static int perf_try_event_open(struct perf_event_attr* perf_attr, pid_t tid, int cpu, int group_fd,
@@ -57,12 +59,7 @@ static int perf_try_event_open(struct perf_event_attr* perf_attr, pid_t tid, int
     return fd;
 }
 
-PerfCounter::PerfCounter(pid_t tid, int cpuid, const perf::CounterDescription& desc, int group_fd)
-: fd_(open(tid, cpuid, desc, group_fd))
-{
-}
-
-int PerfCounter::open(pid_t tid, int cpuid, const perf::CounterDescription& desc, int group_fd)
+static int open_counter(pid_t tid, int cpuid, const perf::CounterDescription& desc, int group_fd)
 {
     struct perf_event_attr perf_attr;
     memset(&perf_attr, 0, sizeof(perf_attr));
@@ -89,21 +86,6 @@ int PerfCounter::open(pid_t tid, int cpuid, const perf::CounterDescription& desc
     return fd;
 }
 
-double PerfCounter::read()
-{
-    Ver infos;
-    auto res = ::read(fd_, &infos, sizeof(infos));
-    if (res != sizeof(infos))
-    {
-        Log::error() << "could not read counter values";
-        throw_errno();
-    }
-    double value = (infos - previous_).scale() + accumulated_;
-    previous_ = infos;
-    accumulated_ = value;
-    return accumulated_;
-}
-
 CounterBuffer::CounterBuffer(std::size_t ncounters)
 : buf_(std::make_unique<char[]>(2 * total_buf_size(ncounters))), accumulated_(ncounters, 0)
 {
@@ -121,23 +103,6 @@ CounterBuffer::CounterBuffer(std::size_t ncounters)
     previous_->time_enabled = 0;
     previous_->time_running = 0;
     std::memset(&current_->values, 0, ncounters * sizeof(uint64_t));
-}
-
-void CounterBuffer::read(int group_leader_fd)
-{
-    auto ncounters = previous_->nr;
-    assert(accumulated_.size() == ncounters);
-
-    auto bufsz = total_buf_size(ncounters);
-
-    auto read_bytes = ::read(group_leader_fd, current_, bufsz);
-    if (read_bytes < 0 || static_cast<decltype(bufsz)>(read_bytes) != bufsz)
-    {
-        Log::error() << "failed to read counter buffer from file descriptor";
-        throw_errno();
-    }
-
-    update_buffers();
 }
 
 void CounterBuffer::read(const ReadFormat* inbuf)
@@ -169,12 +134,30 @@ void CounterBuffer::update_buffers()
     std::swap(current_, previous_);
 }
 
-PerfCounterGroup::PerfCounterGroup(pid_t tid, int cpuid,
-                                   const perf::EventCollection& event_collection,
-                                   bool enable_on_exec)
-: tid_(tid), cpuid_(cpuid), buf_(event_collection.events.size() + 1 /* add group leader counter */)
+PerfCounter::PerfCounter(pid_t tid, int cpuid, const CounterDescription& desc)
+: AbstractPerfCounter(1), fd_(open_counter(tid, cpuid, desc, -1))
 {
-    perf_event_attr leader_attr = perf::common_perf_event_attrs();
+}
+
+double PerfCounter::read()
+{
+    CounterBuffer::ReadFormat data;
+    auto res = ::read(fd_, &data, sizeof(data));
+    if (res != sizeof(data))
+    {
+        Log::error() << "could not read counter values";
+        throw_errno();
+    }
+    buf_.read(&data);
+    return buf_[0];
+}
+
+PerfCounterGroup::PerfCounterGroup(pid_t tid, int cpuid, const EventCollection& event_collection,
+                                   bool enable_on_exec)
+: AbstractPerfCounter(event_collection.events.size() + 1 /* add group leader counter */), tid_(tid),
+  cpuid_(cpuid)
+{
+    perf_event_attr leader_attr = common_perf_event_attrs();
 
     leader_attr.type = event_collection.leader.type;
     leader_attr.config = event_collection.leader.config;
@@ -245,7 +228,9 @@ PerfCounterGroup::PerfCounterGroup(pid_t tid, int cpuid,
 
 void PerfCounterGroup::add_counter(const perf::CounterDescription& counter)
 {
-    counters_.emplace_back(PerfCounter::open(tid_, cpuid_, counter, group_leader_fd_));
+    counters_.emplace_back(open_counter(tid_, cpuid_, counter, group_leader_fd_));
 }
-} // namespace metric
+
+} // namespace counter
+} // namespace perf
 } // namespace lo2s

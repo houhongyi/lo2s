@@ -39,101 +39,26 @@ extern "C"
 
 namespace lo2s
 {
-namespace metric
+namespace perf
 {
-class PerfCounter
+namespace counter
 {
-public:
-    PerfCounter(pid_t tid, int cpuid_, const perf::CounterDescription& desc, int group_fd = -1);
-
-    PerfCounter(const PerfCounter&) = delete;
-
-    PerfCounter(PerfCounter&& other)
-    : fd_(-1), previous_(other.previous_), accumulated_(other.accumulated_)
-    {
-        using std::swap;
-        swap(fd_, other.fd_);
-    }
-
-    PerfCounter& operator=(const PerfCounter&) = delete;
-
-    PerfCounter& operator=(PerfCounter&&) = delete;
-
-    ~PerfCounter()
-    {
-        if (fd_ != -1)
-        {
-            close(fd_);
-        }
-    }
-
-    static int open(pid_t tid, int cpuid, const perf::CounterDescription& desc, int group_fd);
-
-    double read();
-
-    uint64_t enabled()
-    {
-        return previous_.enabled;
-    }
-
-    uint64_t running()
-    {
-        return previous_.running;
-    }
-
-private:
-    struct Ver
-    {
-        uint64_t value = 0;
-        uint64_t enabled = 0;
-        uint64_t running = 0;
-
-        Ver operator-(const Ver& rhs) const
-        {
-            return { value - rhs.value, enabled - rhs.enabled, running - rhs.running };
-        }
-
-        double scale() const
-        {
-            if (running == 0 || running == enabled)
-            {
-                return value;
-            }
-            // there is a bug in perf where this is sometimes swapped
-            if (enabled > running)
-            {
-                return (static_cast<double>(enabled) / running) * value;
-            }
-            return (static_cast<double>(running) / enabled) * value;
-        }
-    };
-
-    static_assert(sizeof(Ver) == sizeof(uint64_t) * 3, "Your memory layout sucks.");
-
-    int fd_;
-    Ver previous_;
-    double accumulated_ = 0.0;
-};
-
-struct GroupReadFormat
-{
-    uint64_t nr;
-    uint64_t time_enabled;
-    uint64_t time_running;
-    uint64_t values[1];
-
-    static constexpr std::size_t header_size()
-    {
-        return sizeof(GroupReadFormat) - sizeof(values);
-    }
-};
-
-class PerfCounterGroup;
 
 class CounterBuffer
 {
 public:
-    using ReadFormat = GroupReadFormat;
+    struct ReadFormat
+    {
+        uint64_t nr;
+        uint64_t time_enabled;
+        uint64_t time_running;
+        uint64_t values[1];
+
+        static constexpr std::size_t header_size()
+        {
+            return sizeof(ReadFormat) - sizeof(values);
+        }
+    };
 
     CounterBuffer(const CounterBuffer&) = delete;
     void operator=(const CounterBuffer&) = delete;
@@ -155,7 +80,6 @@ public:
         return previous_->time_running;
     }
 
-    void read(int group_leader_fd);
     void read(const ReadFormat* buf);
 
     std::size_t size() const
@@ -192,10 +116,53 @@ private:
     std::vector<double> accumulated_;
 };
 
-class PerfCounterGroup
+class AbstractPerfCounter
 {
 public:
-    PerfCounterGroup(pid_t tid, int cpuid, const perf::EventCollection& event_collection,
+    AbstractPerfCounter(int ncounters) : buf_(ncounters)
+    {
+    }
+
+    void read(const CounterBuffer::ReadFormat* inbuf)
+    {
+        buf_.read(inbuf);
+    }
+
+    auto enabled() const
+    {
+        return buf_.enabled();
+    }
+
+    auto running() const
+    {
+        return buf_.running();
+    }
+
+protected:
+    CounterBuffer buf_;
+};
+
+class PerfCounter : public AbstractPerfCounter
+{
+public:
+    PerfCounter(pid_t tid, int cpuid, const CounterDescription& desc);
+    ~PerfCounter()
+    {
+        if (fd_ != -1)
+        {
+            close(fd_);
+        }
+    }
+    double read();
+
+private:
+    int fd_;
+};
+
+class PerfCounterGroup : public AbstractPerfCounter
+{
+public:
+    PerfCounterGroup(pid_t tid, int cpuid, const EventCollection& event_collection,
                      bool enable_on_exec);
 
     ~PerfCounterGroup()
@@ -219,39 +186,20 @@ public:
         return buf_[i];
     }
 
-    void read()
-    {
-        buf_.read(group_leader_fd_);
-    }
-
-    void read(const CounterBuffer::ReadFormat* inbuf)
-    {
-        buf_.read(inbuf);
-    }
-
-    auto enabled() const
-    {
-        return buf_.enabled();
-    }
-
-    auto running() const
-    {
-        return buf_.running();
-    }
-
     int group_leader_fd() const
     {
         return group_leader_fd_;
     }
 
 private:
-    void add_counter(const perf::CounterDescription& counter);
+    void add_counter(const CounterDescription& counter);
 
     int group_leader_fd_;
     pid_t tid_;
     int cpuid_;
     std::vector<int> counters_;
-    CounterBuffer buf_;
 };
-} // namespace metric
+
+} // namespace counter
+} // namespace perf
 } // namespace lo2s

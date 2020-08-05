@@ -133,7 +133,6 @@ string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" LINUX_VERSION ${CMAKE_SYSTEM_VERSI
 # prepare list of source files
 set(SOURCE_FILES
     src/metric/plugin/plugin.cpp src/metric/plugin/channel.cpp src/metric/plugin/metrics.cpp
-    src/metric/perf_counter.cpp
 
     src/monitor/cpu_set_monitor.cpp
     src/monitor/poll_monitor.cpp
@@ -149,6 +148,7 @@ set(SOURCE_FILES
     src/perf/event_collection.cpp
     src/perf/event_provider.cpp
 
+    src/perf/counter/perf_counter.cpp
     src/perf/counter/process_writer.cpp
     src/perf/counter/abstract_writer.cpp
 

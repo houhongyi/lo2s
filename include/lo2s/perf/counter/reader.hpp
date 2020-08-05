@@ -28,7 +28,7 @@
 #include <lo2s/perf/event_provider.hpp>
 #include <lo2s/perf/event_reader.hpp>
 
-#include <lo2s/metric/perf_counter.hpp>
+#include <lo2s/perf/counter/perf_counter.hpp>
 
 #include <cstring>
 
@@ -46,7 +46,7 @@ public:
     {
         struct perf_event_header header;
         uint64_t time;
-        struct metric::GroupReadFormat v;
+        struct CounterBuffer::ReadFormat v;
     };
 
     Reader(pid_t tid, int cpuid, const EventCollection& event_collection, bool enable_on_exec)
@@ -56,7 +56,7 @@ public:
     }
 
 protected:
-    metric::PerfCounterGroup counters_;
+    PerfCounterGroup counters_;
 };
 } // namespace counter
 } // namespace perf
