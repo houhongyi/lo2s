@@ -36,5 +36,7 @@ struct EventCollection
 };
 
 const EventCollection& requested_events();
+const std::vector<CounterDescription>& requested_safe_events();
+
 } // namespace perf
 } // namespace lo2s

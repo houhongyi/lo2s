@@ -112,6 +112,30 @@ EventCollection collect_requested_events()
              std::move(used_counters) };
 }
 
+std::vector<CounterDescription> collect_requested_safe_events()
+{
+    const auto& user_events = lo2s::config().safe_perf_events;
+    std::vector<CounterDescription> used_counters;
+    for (const auto& ev : user_events)
+    {
+        try
+        {
+            const auto event_desc = perf::EventProvider::get_event_by_name(ev);
+            used_counters.emplace_back(event_desc);
+        }
+        catch (const perf::EventProvider::InvalidEvent& e)
+        {
+            Log::warn() << "'" << ev
+                        << "' does not name a known event, ignoring! (reason: " << e.what() << ")";
+        }
+    }
+    return used_counters;
+}
+const std::vector<CounterDescription>& requested_safe_events()
+{
+    static std::vector<CounterDescription> events{collect_requested_safe_events() };
+    return events;
+}
 const EventCollection& requested_events()
 {
     static EventCollection events{ collect_requested_events() };
