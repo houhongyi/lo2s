@@ -30,30 +30,26 @@ namespace perf
 {
 namespace counter
 {
-AbstractWriter::AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer,
-                               otf2::definition::metric_instance metric_instance,
-                               bool enable_on_exec)
-: Reader(tid, cpuid, requested_events(), enable_on_exec),
-  time_converter_(time::Converter::instance()), writer_(writer), metric_instance_(metric_instance),
+AbstractWriter::AbstractWriter(otf2::writer::local& writer,
+                               otf2::definition::metric_instance metric_instance)
+: writer_(writer), metric_instance_(metric_instance),
   metric_event_(otf2::chrono::genesis(), metric_instance)
 {
 }
 
-bool AbstractWriter::handle(const Reader::RecordSampleType* sample)
+bool AbstractWriter::handle(otf2::chrono::time_point tp, std::vector<double> counter_values_)
 {
     // update event timestamp from sample
-    metric_event_.timestamp(time_converter_(sample->time));
-
-    counters_.read(&sample->v);
+    metric_event_.timestamp(tp);
 
     otf2::event::metric::values& values = metric_event_.raw_values();
 
-    assert(counters_.size() <= values.size());
+    assert(counters_values_.size() <= values.size());
 
     // read counter values into metric event
     for (std::size_t i = 0; i < counters_.size(); i++)
     {
-        values[i] = counters_[i];
+        values[i] = counters_values_[i];
     }
 
     auto index = counters_.size();

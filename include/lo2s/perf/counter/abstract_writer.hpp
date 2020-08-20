@@ -31,17 +31,15 @@ namespace perf
 {
 namespace counter
 {
-class AbstractWriter : public Reader<AbstractWriter>
+class AbstractWriter
 {
 public:
-    AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer,
-                   otf2::definition::metric_instance metric_instance, bool enable_on_exec);
+    AbstractWriter(otf2::writer::local& writer,
+        otf2::definition::metric_instance metric_instance);
 
-    using Reader<AbstractWriter>::handle;
-    bool handle(const RecordSampleType* sample);
+    bool handle(otf2::chrono::time_point tp, std::vector<double> counter_values);
 
 protected:
-    time::Converter time_converter_;
     otf2::writer::local& writer_;
     otf2::definition::metric_instance metric_instance_;
     // XXX this should depend here!
