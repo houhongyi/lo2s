@@ -80,9 +80,11 @@ public:
     static constexpr pid_t NO_PARENT_PROCESS_PID =
         0; //<! sentinel value for an inserted process that has no known parent
 
-    Trace();
-    ~Trace();
-
+    static Trace& instance()
+    {
+        static Trace trace;
+        return trace;
+    }
     void begin_record();
     void end_record();
 
@@ -192,6 +194,9 @@ private:
     void add_lo2s_property(const std::string& name, const std::string& value);
 
 private:
+    Trace();
+    ~Trace();
+
     static constexpr pid_t METRIC_PID = 0;
 
     std::string trace_name_;
