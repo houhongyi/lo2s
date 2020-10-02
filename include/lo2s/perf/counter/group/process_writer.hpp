@@ -31,8 +31,7 @@ namespace counter
 class ProcessWriter : public AbstractWriter
 {
 public:
-    ProcessWriter(pid_t pid, pid_t tid, otf2::writer::local& writer, monitor::MainMonitor& parent,
-                  bool enable_on_exec);
+    ProcessWriter(pid_t pid, pid_t tid, otf2::writer::local& writer, bool enable_on_exec);
 };
 } // namespace counter
 } // namespace perf

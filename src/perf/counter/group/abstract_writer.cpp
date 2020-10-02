@@ -29,12 +29,9 @@ namespace perf
 {
 namespace counter
 {
-AbstractWriter::AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer,
-                               otf2::definition::metric_instance metric_instance,
+AbstractWriter::AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer, const otf2::definition::location& scope,
                                bool enable_on_exec)
-: Reader(tid, cpuid, requested_counters(), enable_on_exec),
-  time_converter_(time::Converter::instance()), writer_(writer), metric_instance_(metric_instance),
-  metric_event_(otf2::chrono::genesis(), metric_instance)
+: Reader(tid, cpuid, requested_counters(), enable_on_exec), MetricWriter(writer, Trace::instance().perf_metric_class(), scope)
 {
 }
 

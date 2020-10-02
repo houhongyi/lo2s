@@ -35,19 +35,19 @@ ProcessMonitor::ProcessMonitor() : MainMonitor()
 
 void ProcessMonitor::insert_process(pid_t pid, pid_t ppid, std::string proc_name, bool spawn)
 {
-    trace_.add_process(pid, ppid, proc_name);
-    insert_thread(pid, pid, proc_name, spawn);
-}
-
-void ProcessMonitor::insert_thread(pid_t pid, pid_t tid, std::string name, bool spawn)
-{
-    trace_.add_thread(tid, name);
-
     if (config().sampling)
     {
         process_infos_.emplace(std::piecewise_construct, std::forward_as_tuple(pid),
                                std::forward_as_tuple(pid, spawn));
     }
+
+    trace_.add_process(pid, ppid, proc_name);
+    insert_thread(pid, pid, proc_name, spawn);
+}
+
+void ProcessMonitor::insert_thread(pid_t ptid, pid_t tid, std::string name, bool spawn)
+{
+    trace_.add_thread(tid, name);
 
     if (config().sampling || !perf::counter::requested_counters().counters.empty())
     {

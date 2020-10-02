@@ -93,6 +93,7 @@ public:
 
     void add_process(pid_t pid, pid_t parent, const std::string& name = "");
 
+    void add_monitored_thread(pid_t ptid, pid_t tid);
     void add_thread(pid_t tid, const std::string& name);
     void add_threads(const std::unordered_map<pid_t, std::string>& tid_map);
 
@@ -164,6 +165,31 @@ public:
     {
         return system_tree_root_node_;
     }
+
+    const otf2::definition::location& cpu_location(int cpuid)
+    {
+        auto name = fmt::format("cpu {}", cpuid);
+
+        const auto& location = registry_.emplace<otf2::definition::location>(ByCpuSwitchWriter(cpuid), name, registry_.get<otf2::definition::location_group>(ByCpu(cpuid)), otf2::definition::location::location_type::cpu_thread);
+
+        comm_locations_group_.add_member(location);
+
+        return location;
+    }
+
+    const otf2::definition::location& thread_location(pid_t pid, pid_t tid)
+    {
+        auto name = (fmt::format("thread {}", tid));
+
+        const auto& location = registry_.emplace<otf2::definition::location>(ByThreadSampleWriter(tid), intern(name), registry_get<otf2::definition::location_group>(ByProcess(pid)),otf2::definition::location::location_type::cpu_thread);
+        
+        registry_.get<otf2::definition::comm_group>(ByProcess(pid)).add_member(location);
+
+        comm_locations_group_.add_member(location);
+
+        return location;
+    }
+
     otf2::definition::comm& process_comm(pid_t pid)
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
@@ -222,6 +248,8 @@ private:
     otf2::definition::metric_class& cpuid_metric_class_;
 
     const otf2::definition::system_tree_node& system_tree_root_node_;
+
+    std::map<std::string, std::string> groups;
 };
 } // namespace trace
 } // namespace lo2s

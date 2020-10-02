@@ -39,6 +39,8 @@ extern "C"
 #include <unistd.h>
 }
 
+#include <fmt/core.h>
+
 namespace lo2s
 {
 
@@ -98,4 +100,14 @@ std::unordered_map<pid_t, std::string> get_comms_for_running_processes();
 void try_pin_to_cpu(int cpu, pid_t pid = 0);
 
 pid_t gettid();
+
+const std::string& thread_name(pid_t pid)
+{
+    return fmt::format("thread {}", pid);
+}
+
+const std::string& cpu_name(int cpuid)
+{
+    return fmt::format("cpu {}", cpuid);
+}
 } // namespace lo2s

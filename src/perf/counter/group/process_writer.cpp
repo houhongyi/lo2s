@@ -26,12 +26,10 @@ namespace perf
 {
 namespace counter
 {
-ProcessWriter::ProcessWriter(pid_t pid, pid_t tid, otf2::writer::local& writer,
-                             monitor::MainMonitor& parent, bool enable_on_exec)
+ProcessWriter::ProcessWriter(pid_t pid, pid_t tid, otf2::writer::local& writer, bool enable_on_exec)
 : AbstractWriter(
       tid, -1, writer,
-      parent.trace().metric_instance(parent.trace().perf_metric_class(), writer.location(),
-                                     parent.trace().thread_sample_writer(pid, tid).location()),
+      Trace::instance().thread_location(pid, tid),
       enable_on_exec)
 {
 }

@@ -21,7 +21,8 @@
 
 #pragma once
 
-#include <lo2s/perf/counter/reader.hpp>
+#include <lo2s/perf/counter/metric_writer.hpp>
+#include <lo2s/perf/counter/group/reader.hpp>
 #include <lo2s/perf/time/converter.hpp>
 #include <lo2s/trace/trace.hpp>
 
@@ -31,22 +32,17 @@ namespace perf
 {
 namespace counter
 {
-class AbstractWriter : public Reader<AbstractWriter>
+namespace group
+{
+class AbstractWriter : public Reader<AbstractWriter>, MetricWriter
 {
 public:
-    AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer,
-                   otf2::definition::metric_instance metric_instance, bool enable_on_exec);
+    AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer, const otf2::definition::location &scope, bool enable_on_exec);
 
     using Reader<AbstractWriter>::handle;
     bool handle(const RecordSampleType* sample);
-
-protected:
-    time::Converter time_converter_;
-    otf2::writer::local& writer_;
-    otf2::definition::metric_instance metric_instance_;
-    // XXX this should depend here!
-    otf2::event::metric metric_event_;
 };
+}
 } // namespace counter
 } // namespace perf
 } // namespace lo2s

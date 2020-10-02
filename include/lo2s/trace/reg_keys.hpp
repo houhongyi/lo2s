@@ -149,7 +149,7 @@ struct Holder<otf2::definition::string>
 template <>
 struct Holder<otf2::definition::location_group>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::location_group, ByProcess, ByCpu>;
+    using type = otf2::lookup_definition_holder<otf2::definition::location_group, ByString>;
 };
 template <>
 struct Holder<otf2::definition::location>
