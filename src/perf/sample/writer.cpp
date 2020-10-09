@@ -52,9 +52,9 @@ namespace perf
 namespace sample
 {
 
-Writer::Writer(pid_t pid, pid_t tid, int cpu, monitor::MainMonitor& Monitor, trace::Trace& trace,
+Writer::Writer(pid_t tid, int cpu, monitor::MainMonitor& Monitor, trace::Trace& trace,
                otf2::writer::local& otf2_writer, bool enable_on_exec)
-: Reader(tid, cpu, enable_on_exec), pid_(pid), tid_(tid), cpuid_(cpu), monitor_(Monitor),
+: Reader(tid, cpu, enable_on_exec), tid_(tid), cpuid_(cpu), monitor_(Monitor),
   trace_(trace), otf2_writer_(otf2_writer),
   cpuid_metric_instance_(trace.metric_instance(trace.cpuid_metric_class(), otf2_writer.location(),
                                                otf2_writer.location())),
@@ -127,7 +127,7 @@ bool Writer::handle(const Reader::RecordSampleType* sample)
     auto tp = time_converter_(sample->time);
     tp = adjust_timepoints(tp);
 
-    update_current_thread(sample->pid, sample->tid, tp);
+    update_current_thread(sample->tid, tp);
 
     cpuid_metric_event_.timestamp(tp);
     cpuid_metric_event_.raw_values()[0] = sample->cpu;
@@ -161,12 +161,12 @@ bool Writer::handle(const Reader::RecordSampleType* sample)
 bool Writer::handle(const Reader::RecordMmapType* mmap_event)
 {
     // Since this is an mmap record (as opposed to mmap2), it will only be generated for executable
-    if (cpuid_ == -1 && ((pid_t(mmap_event->pid) != pid_) || (pid_t(mmap_event->tid) != tid_)))
+    if (cpuid_ == -1 && pid_t(mmap_event->tid) != tid_)
     {
-        Log::warn() << "Inconsistent mmap pid/tid expected " << pid_ << "/" << tid_ << ", actual "
-                    << mmap_event->pid << "/" << mmap_event->tid;
+        Log::warn() << "Inconsistent mmap tid expected " << tid_ << ", actual "
+                    << mmap_event->tid;
     }
-    Log::debug() << "encountered mmap event for " << pid_ << "," << tid_ << " "
+    Log::debug() << "encountered mmap event for " << tid_ << " "
                  << Address(mmap_event->addr) << " len: " << Address(mmap_event->len)
                  << " pgoff: " << Address(mmap_event->pgoff) << ", " << mmap_event->filename;
 
@@ -174,11 +174,11 @@ bool Writer::handle(const Reader::RecordMmapType* mmap_event)
     return false;
 }
 
-void Writer::update_current_thread(pid_t pid, pid_t tid, otf2::chrono::time_point tp)
+void Writer::update_current_thread(pid_t tid, otf2::chrono::time_point tp)
 {
     if (first_event_ && cpuid_ == -1)
     {
-        otf2_writer_ << otf2::event::thread_begin(tp, trace_.process_comm(pid_), -1);
+        otf2_writer_ << otf2::event::thread_begin(tp, trace_.process_comm(tid_), -1);
         first_event_ = false;
     }
 
@@ -280,7 +280,7 @@ void Writer::update_calling_context(pid_t pid, pid_t tid, otf2::chrono::time_poi
     }
     else
     {
-        update_current_thread(pid, tid, tp);
+        update_current_thread(tid, tp);
     }
 }
 #endif
@@ -323,7 +323,7 @@ void Writer::end()
             // time::now(), which is a monotone clock, therefore it is before
             // the call to time::now() from above.  If any samples were written,
             // the required check has occured in handle() above.
-            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(pid_),
+            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(tid_),
                                                       -1);
         }
 
@@ -331,7 +331,7 @@ void Writer::end()
         // ensure that first_time_point_ <= last_time_point_, therefore samples
         // on this location span a non-negative amount of time between the
         // thread_begin and thread_end event.
-        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(pid_), -1);
+        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(tid_), -1);
     }
 
     trace_.add_threads(comms_);

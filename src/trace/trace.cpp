@@ -189,12 +189,18 @@ Trace::Trace()
             ByString(name_str), name, otf2::definition::location_group::location_group_type::process,
             registry_.get<otf2::definition::system_tree_node>(ByCpu(cpu.id)));
 
-        groups.emplace(name_str, name_str);
+        groups_.emplace(name_str, name_str);
+#ifndef USE_PERF_RECORD_SWITCH
+        //If we can't use PERF_RECORD_SWITCH we have to record samples in cpu monitoring mode
+        //into a different location.
+        std::string sample_name_str = fmt::format("sample {}", name_str);
+        groups_.emplace(sample_name_str, name_str);
+#endif
     }
 
     //If we can't determine the real ppid of a thread
     //use this instead.
-    groups.emplace(thread_name(NO_PARENT_PROCESS_PID), thread_name(NO_PARENT_PROCESS_PID));
+    groups_.emplace(thread_name(NO_PARENT_PROCESS_PID), thread_name(NO_PARENT_PROCESS_PID));
 }
 
 void Trace::begin_record()
@@ -277,7 +283,7 @@ void Trace::add_process(pid_t pid, pid_t parent, const std::string& name)
     }
     else
     {
-        groups.emplace(thread_name(pid), thread_name(pid));
+        groups_.emplace(thread_name(pid), thread_name(pid));
 
         const auto& iname = intern(name);
         const auto& parent_node = (parent == NO_PARENT_PROCESS_PID) ? system_tree_root_node_ :
@@ -291,10 +297,10 @@ void Trace::add_process(pid_t pid, pid_t parent, const std::string& name)
             ret);
 
         const auto& comm_group = registry_.emplace<otf2::definition::comm_group>(
-            ByProcess(pid), iname, otf2::common::paradigm_type::pthread,
+            ByString(thread_name(pid)), iname, otf2::common::paradigm_type::pthread,
             otf2::common::group_flag_type::none);
 
-        registry_.emplace<otf2::definition::comm>(ByProcess(pid), iname, comm_group);
+        registry_.emplace<otf2::definition::comm>(ByString(thread_name(pid)), iname, comm_group);
     }
 }
 
@@ -306,8 +312,8 @@ void Trace::update_process_name(pid_t pid, const std::string& name)
     {
         registry_.get<otf2::definition::system_tree_node>(ByProcess(pid)).name(iname);
         registry_.get<otf2::definition::location_group>(ByProcess(pid)).name(iname);
-        registry_.get<otf2::definition::comm_group>(ByProcess(pid)).name(iname);
-        registry_.get<otf2::definition::comm>(ByProcess(pid)).name(iname);
+        registry_.get<otf2::definition::comm_group>(ByString(thread_name(pid))).name(iname);
+        registry_.get<otf2::definition::comm>(ByString(thread_name(pid))).name(iname);
 
         update_thread_name(pid, name);
     }
@@ -332,9 +338,9 @@ void Trace::update_thread_name(pid_t tid, const std::string& name)
         thread_region.source_file(iname);
         thread_region.description(iname);
 
-        if (registry_.has<otf2::definition::location>(ByThreadSampleWriter(tid)))
+        if (registry_.has<otf2::definition::location>(ByString(thread_name(tid))))
         {
-            registry_.get<otf2::definition::location>(ByThreadSampleWriter(tid)).name(iname);
+            registry_.get<otf2::definition::location>(ByString(thread_name(tid))).name(iname);
         }
 
         thread_names_[tid] = name;
@@ -360,69 +366,33 @@ void Trace::add_lo2s_property(const std::string& name, const std::string& value)
         system_tree_root_node_, intern(property_name), otf2::attribute_value{ intern(value) });
 }
 
-otf2::writer::local& Trace::thread_sample_writer(pid_t pid, pid_t tid)
+otf2::writer::local& Trace::sample_writer(const std::string& name)
 {
     // TODO we call this function in a hot-loop, locking doesn't sound like a good idea
     std::lock_guard<std::recursive_mutex> guard(mutex_);
 
-    return archive_(thread_location);
+    return archive_(location(name));
 }
 
-otf2::writer::local& Trace::cpu_sample_writer(int cpuid)
+otf2::writer::local& Trace::metric_writer(const std::string& name)
 {
-#ifdef USE_PERF_RECORD_SWITCH
-    // if we use switch records, we write sample events in the same location as switch events,
-    // thus we make sure to return the appropriate location here.
-    return cpu_switch_writer(cpuid);
-#else
-    auto name = fmt::format("sample cpu {}", cpuid);
-
-    // As the cpuid is unique in this context, create only one writer/location per cpuid
+    auto metric_name = fmt::format("metrics for {}", name);
     const auto& location = registry_.emplace<otf2::definition::location>(
-        ByCpuSampleWriter(cpuid), intern(name),
-        registry_.get<otf2::definition::location_group>(ByCpu(cpuid)),
-        otf2::definition::location::location_type::cpu_thread);
-
-    comm_locations_group_.add_member(location);
-    return archive_(location);
-#endif
+            ByString(metric_name), intern(metric_nane),
 }
-
-otf2::writer::local& Trace::cpu_switch_writer(int cpuid)
-{
-    return archive_(cpu_location(cpuid));
-}
-
-otf2::writer::local& Trace::thread_metric_writer(pid_t pid, pid_t tid)
-{
-    auto name = fmt::format("metrics for thread {}", tid);
-
-    // As the tid is unique in this context, create only one
-    // writer/location per tid
-    const auto& location = registry_.emplace<otf2::definition::location>(
-        ByThreadMetricWriter(tid), intern(name),
-        registry_.get<otf2::definition::location_group>(ByProcess(pid)),
-        otf2::definition::location::location_type::metric);
-
+            registry_.get<otf2::definition::location_group>(ByString(groups_[name])),
+            otf2::definition::location::location_type::metric
+            );
     return archive_(location);
 }
 
-otf2::writer::local& Trace::cpu_metric_writer(int cpuid)
+// Normally we assume that names are unique, i.e. one name one location
+// But there are places where the name comes from an outside source (e.g. plugins)
+// where we can't assume uniqueness
+otf2::writer::local& Trace::non_unique_metric_writer(const std::string& name)
 {
-    auto name = intern(fmt::format("metrics for cpu {}", cpuid));
-
-    const auto& location = registry_.emplace<otf2::definition::location>(
-        ByCpuMetricWriter(cpuid), name,
-        registry_.get<otf2::definition::location_group>(ByCpu(cpuid)),
-        otf2::definition::location::location_type::metric);
-    return archive_(location);
-}
-
-otf2::writer::local& Trace::named_metric_writer(const std::string& name)
-{
-    // As names may not be unique in this context, always generate a new location/writer pair
     const auto& location = registry_.create<otf2::definition::location>(
-        intern(name), registry_.get<otf2::definition::location_group>(ByProcess(METRIC_PID)),
+        intern(name), registry_.get<otf2::definition::location_group>(ByString(thread_name(METRIC_PID)),
         otf2::definition::location::location_type::metric);
     return archive_(location);
 }
@@ -630,13 +600,13 @@ void Trace::add_monitored_thread(pid_t ptid, pid_t tid);
 
     try
     {
-        groups.emplace(thread_name(tid), groups[thread_name(ptid)]);
+        groups_.emplace(thread_name(tid), groups_[thread_name(ptid)]);
     }
     catch(std::out_of_range& e)
     {
         Log::warn() << "parent thread: " << ptid << " was never seen before. Using PID 0 as real parent";
         
-        groups.emplace(thread_name(tid), groups[thread_name(NO_PARENT_PROCESS_PID)]);
+        groups_.emplace(thread_name(tid), groups_[thread_name(NO_PARENT_PROCESS_PID)]);
     }
 }
 void Trace::add_thread(pid_t tid, const std::string& name)

@@ -79,31 +79,6 @@ struct ByProcessTag
 };
 using ByProcess = SimpleKeyType<pid_t, ByProcessTag>;
 
-struct ByCpuSwitchWriterTag
-{
-};
-using ByCpuSwitchWriter = SimpleKeyType<int, ByCpuSwitchWriterTag>;
-
-struct ByCpuMetricWriterTag
-{
-};
-using ByCpuMetricWriter = SimpleKeyType<int, ByCpuMetricWriterTag>;
-
-struct ByCpuSampleWriterTag
-{
-};
-using ByCpuSampleWriter = SimpleKeyType<int, ByCpuSampleWriterTag>;
-
-struct ByThreadMetricWriterTag
-{
-};
-using ByThreadMetricWriter = SimpleKeyType<int, ByThreadMetricWriterTag>;
-
-struct ByThreadSampleWriterTag
-{
-};
-using ByThreadSampleWriter = SimpleKeyType<int, ByThreadSampleWriterTag>;
-
 struct ByStringTag
 {
 };
@@ -154,9 +129,7 @@ struct Holder<otf2::definition::location_group>
 template <>
 struct Holder<otf2::definition::location>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::location, ByCpuSwitchWriter,
-                                                ByCpuMetricWriter, ByCpuSampleWriter,
-                                                ByThreadMetricWriter, ByThreadSampleWriter>;
+    using type = otf2::lookup_definition_holder<otf2::definition::location, ByString>;
 };
 template <>
 struct Holder<otf2::definition::region>
@@ -181,7 +154,7 @@ struct Holder<otf2::definition::comm>
 template <>
 struct Holder<otf2::definition::comm_group>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::comm_group, ByProcess>;
+    using type = otf2::lookup_definition_holder<otf2::definition::comm_group, ByString>;
 };
 } // namespace trace
 } // namespace lo2s
