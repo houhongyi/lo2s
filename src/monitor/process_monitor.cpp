@@ -52,7 +52,7 @@ void ProcessMonitor::insert_thread(pid_t ptid, pid_t tid, std::string name, bool
     if (config().sampling || !perf::counter::requested_counters().counters.empty())
     {
         threads_.emplace(std::piecewise_construct, std::forward_as_tuple(tid),
-                         std::forward_as_tuple(pid, tid, *this, spawn));
+                         std::forward_as_tuple(ThreadLocation(tid), *this, spawn));
     }
 
     trace_.update_thread_name(tid, name);

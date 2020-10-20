@@ -29,9 +29,8 @@ namespace perf
 {
 namespace counter
 {
-AbstractWriter::AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer, const otf2::definition::location& scope,
-                               bool enable_on_exec)
-: Reader(tid, cpuid, requested_counters(), enable_on_exec), MetricWriter(writer, Trace::instance().perf_metric_class(), scope)
+Writer::Writer(Location location, bool enable_on_exec)
+: Reader(location, requested_counters(), enable_on_exec), MetricWriter(location, trace::Trace::instance().perf_metric_class())
 {
 }
 

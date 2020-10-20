@@ -70,34 +70,6 @@ struct IpCctxEntry
     IpMap<IpCctxEntry> children;
 };
 
-enum class LocationType;
-{
-    THREAD,
-    CPU
-};
-
-struct Location
-{
-    Location(LocationType type, unsigned int location)
-        : type(type), location(location)
-    {
-    }
-    LocationType type;
-    unsigned int location;
-
-    const std::string& name()
-    {
-        if(type == LocationType::Thread)
-        {
-            return thread_name(location);
-        }
-        else
-        {
-            return cpu_name(location);
-        }
-    }
-};
-
 using ThreadCctxRefMap = std::map<pid_t, ThreadCctxRefs>;
 using IpRefMap = IpMap<IpRefEntry>;
 using IpCctxMap = IpMap<IpCctxEntry>;
@@ -134,8 +106,8 @@ public:
                                                            size_t num_ip_refs,
                                                            std::map<pid_t, ProcessInfo>& infos);
 
-    otf2::writer::local& sample_writer(const std::string& name);
-    otf2::writer::local& metric_writer(const std::string& name);
+    otf2::writer::local& sample_writer(const Location& Location);
+    otf2::writer::local& metric_writer(const Location& location);
     otf2::writer::local& non_unique_metric_writer(const std::string& name);
 
     otf2::definition::metric_member
@@ -191,25 +163,25 @@ public:
         return system_tree_root_node_;
     }
 
-    const otf2::definition::location& location(const std::string& name)
+    const otf2::definition::location& location(const Location& location)
     {
-        const auto& location = registry_.emplace<otf2::definition::location>(ByString(name),
-                intern(name), registry_.get<otf2::definition::location_group>(ByString(groups_[name])),
+        const auto& intern_location = registry_.emplace<otf2::definition::location>(ByLocation(location),
+                intern(location.name()), registry_.get<otf2::definition::location_group>(ByString(groups_[location])),
                     otf2::definition::location::location_type::cpu_thread);
         
-        comm_locations_group_.add_member(location);
+        comm_locations_group_.add_member(intern_location);
 
-        if(registry_.has<otf2::definition::comm_group>(ByString(groups_[name])))
+        if(registry_.has<otf2::definition::comm_group>(ByLocation(groups_[location])))
         {
-            registry_.get<otf2::definitiion::comm_group>(ByString(groups_[name])).add_member(location);
+            registry_.get<otf2::definitiion::comm_group>(ByString(groups_[location])).add_member(intern_location);
         }
-        return location;
+        return intern_location;
     }
 
-    otf2::definition::comm& process_comm(pid_t tid)
+    otf2::definition::comm& process_comm(Location location)
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
-        return registry_.get<otf2::definition::comm>(ByString(groups_[thread_name(tid)]));
+        return registry_.get<otf2::definition::comm>(groups_[location]);
     }
 
 private:

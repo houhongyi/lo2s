@@ -70,6 +70,72 @@ private:
     std::mutex mutex_;
 };
 
+ enum class LocationType
+ {
+     THREAD,
+     CPU,
+     SAMPLE_CPU
+ };
+
+ struct Location
+ {
+     Location(LocationType type, int location)
+         : type(type), location(location)
+     {
+     }
+     LocationType type;
+     int location;
+
+     std::string name() const
+     {
+         switch(type)
+         {
+             case LocationType::THREAD:
+                 return fmt::format("thread {}", location);
+             case LocationType::CPU:
+                 return fmt::format("cpu {}", location);
+             case LocationType::SAMPLE_CPU:
+                 return fmt::format("sample cpu {}", location);
+             default:
+                 throw new std::runtime_error("Unknown LocationType!");
+         }
+     }
+
+     pid_t tid() const
+     {
+         return (type == LocationType.THREAD ? location : -1);
+     }
+     int cpuid() const
+     {
+         return (type != LocationType.THREAD ? location : -1);
+     }
+ };
+
+ struct CpuLocation : public Location
+ {
+     CpuLocation(int cpuid)
+         : Location(LocationType::CPU, cpuid)
+     {
+     }
+ };
+
+ struct ThreadLocation : public Location
+ {
+     ThreadLocation(pid_t tid)
+         : Location(LocationType::THREAD, tid)
+     {
+     }
+ };
+
+ struct SampleCpuLocation : public Location
+ {
+     SampleCpuLocation(int cpuid)
+         : Location(LocationType::SAMPLE_CPU, cpuid);
+     {
+     }
+ };
+                  
+
 std::size_t get_page_size();
 std::string get_process_exe(pid_t pid);
 std::string get_process_comm(pid_t pid);
@@ -97,17 +163,7 @@ int32_t get_task_last_cpu_id(std::istream& proc_stat);
 
 std::unordered_map<pid_t, std::string> get_comms_for_running_processes();
 
-void try_pin_to_cpu(int cpu, pid_t pid = 0);
+void try_pin_to_location(Location location);
 
 pid_t gettid();
-
-const std::string& thread_name(pid_t pid)
-{
-    return fmt::format("thread {}", pid);
-}
-
-const std::string& cpu_name(int cpuid)
-{
-    return fmt::format("cpu {}", cpuid);
-}
 } // namespace lo2s

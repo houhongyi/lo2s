@@ -52,18 +52,15 @@ namespace perf
 namespace sample
 {
 
-Writer::Writer(pid_t tid, int cpu, monitor::MainMonitor& Monitor, trace::Trace& trace,
-               otf2::writer::local& otf2_writer, bool enable_on_exec)
-: Reader(tid, cpu, enable_on_exec), tid_(tid), cpuid_(cpu), monitor_(Monitor),
-  trace_(trace), otf2_writer_(otf2_writer),
-  cpuid_metric_instance_(trace.metric_instance(trace.cpuid_metric_class(), otf2_writer.location(),
-                                               otf2_writer.location())),
+Writer::Writer(Location location, monitor::MainMonitor& Monitor, trace::Trace& trace, bool enable_on_exec)
+: Reader(location enable_on_exec), location_(location), monitor_(Monitor),
+  trace_(trace), otf2_writer_(trace.sample_writer(location)),
+  cpuid_metric_instance_(trace.metric_instance(trace.cpuid_metric_class(), otf2_writer_.location(),
+                                               otf2_writer_.location())),
   cpuid_metric_event_(otf2::chrono::genesis(), cpuid_metric_instance_),
   time_converter_(perf::time::Converter::instance()), first_time_point_(lo2s::time::now()),
   last_time_point_(first_time_point_)
 {
-    // Must monitor either a CPU or (exclusive) a tid/pid
-    assert((cpu == -1) ^ (pid == -1 && tid == -1));
 }
 
 Writer::~Writer()
@@ -127,7 +124,7 @@ bool Writer::handle(const Reader::RecordSampleType* sample)
     auto tp = time_converter_(sample->time);
     tp = adjust_timepoints(tp);
 
-    update_current_thread(sample->tid, tp);
+    update_current_thread(sample->pid, sample->tid, tp);
 
     cpuid_metric_event_.timestamp(tp);
     cpuid_metric_event_.raw_values()[0] = sample->cpu;
@@ -161,12 +158,12 @@ bool Writer::handle(const Reader::RecordSampleType* sample)
 bool Writer::handle(const Reader::RecordMmapType* mmap_event)
 {
     // Since this is an mmap record (as opposed to mmap2), it will only be generated for executable
-    if (cpuid_ == -1 && pid_t(mmap_event->tid) != tid_)
+    if (location_ = ThreadLocation(mmap_event->tid))
     {
-        Log::warn() << "Inconsistent mmap tid expected " << tid_ << ", actual "
+        Log::warn() << "Inconsistent mmap expected " << location_.name << ", actual "
                     << mmap_event->tid;
     }
-    Log::debug() << "encountered mmap event for " << tid_ << " "
+    Log::debug() << "encountered mmap event for " << location_.name() << " "
                  << Address(mmap_event->addr) << " len: " << Address(mmap_event->len)
                  << " pgoff: " << Address(mmap_event->pgoff) << ", " << mmap_event->filename;
 
@@ -174,11 +171,11 @@ bool Writer::handle(const Reader::RecordMmapType* mmap_event)
     return false;
 }
 
-void Writer::update_current_thread(pid_t tid, otf2::chrono::time_point tp)
+void Writer::update_current_thread(pid_t pid, pid_t tid, otf2::chrono::time_point tp)
 {
-    if (first_event_ && cpuid_ == -1)
+    if (first_event_ && location.type == LocationType::THREAD)
     {
-        otf2_writer_ << otf2::event::thread_begin(tp, trace_.process_comm(tid_), -1);
+        otf2_writer_ << otf2::event::thread_begin(tp, trace_.process_comm(location_), -1);
         first_event_ = false;
     }
 
@@ -236,7 +233,7 @@ otf2::chrono::time_point Writer::adjust_timepoints(otf2::chrono::time_point tp)
 #ifdef USE_PERF_RECORD_SWITCH
 bool Writer::handle(const Reader::RecordSwitchCpuWideType* context_switch)
 {
-    assert(cpuid_ != -1);
+    assert(location_.type == LocationType::THREAD);
     auto tp = time_converter_(context_switch->time);
     tp = adjust_timepoints(tp);
 
@@ -248,7 +245,7 @@ bool Writer::handle(const Reader::RecordSwitchCpuWideType* context_switch)
 
 bool Writer::handle(const Reader::RecordSwitchType* context_switch)
 {
-    assert(cpuid_ == -1);
+    assert(location_.type == LocationType::THREAD);
     auto tp = time_converter_(context_switch->time);
     tp = adjust_timepoints(tp);
 
@@ -280,13 +277,13 @@ void Writer::update_calling_context(pid_t pid, pid_t tid, otf2::chrono::time_poi
     }
     else
     {
-        update_current_thread(tid, tp);
+        update_current_thread(pid, tid, tp);
     }
 }
 #endif
 bool Writer::handle(const Reader::RecordCommType* comm)
 {
-    if (cpuid_ == -1)
+    if (location_.type == LocationType::THREAD)
     {
         std::string new_command{ static_cast<const char*>(comm->comm) };
 
@@ -311,7 +308,7 @@ bool Writer::handle(const Reader::RecordCommType* comm)
 
 void Writer::end()
 {
-    if (cpuid_ == -1)
+    if (location_.type == LocationType::THREAD)
     {
         adjust_timepoints(lo2s::time::now());
         // If we have never written any samples on this location, we also never
@@ -323,7 +320,7 @@ void Writer::end()
             // time::now(), which is a monotone clock, therefore it is before
             // the call to time::now() from above.  If any samples were written,
             // the required check has occured in handle() above.
-            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(tid_),
+            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(location),
                                                       -1);
         }
 
@@ -331,7 +328,7 @@ void Writer::end()
         // ensure that first_time_point_ <= last_time_point_, therefore samples
         // on this location span a non-negative amount of time between the
         // thread_begin and thread_end event.
-        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(tid_), -1);
+        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(location), -1);
     }
 
     trace_.add_threads(comms_);

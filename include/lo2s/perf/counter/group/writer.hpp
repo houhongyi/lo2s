@@ -34,12 +34,12 @@ namespace counter
 {
 namespace group
 {
-class AbstractWriter : public Reader<AbstractWriter>, MetricWriter
+class Writer : public Reader<Writer>, MetricWriter
 {
 public:
-    AbstractWriter(pid_t tid, int cpuid, otf2::writer::local& writer, const otf2::definition::location &scope, bool enable_on_exec);
+    Writer(Location location, bool enable_on_exec);
 
-    using Reader<AbstractWriter>::handle;
+    using Reader<Writer>::handle;
     bool handle(const RecordSampleType* sample);
 };
 }

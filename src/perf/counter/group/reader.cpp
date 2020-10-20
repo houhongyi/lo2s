@@ -86,10 +86,15 @@ int open_counter(pid_t tid, int cpuid, const EventDescription& desc, int group_f
 }
 
 template <class T>
-Reader<T>::Reader(pid_t tid, int cpuid, const CounterCollection& counter_collection,
+Reader<T>::Reader(Location location, const CounterCollection& counter_collection,
+    src/perf/counter/process_writer.cpp
                   bool enable_on_exec)
 : counter_buffer_(counter_collection.counters.size() + 1)
 {
+
+    int cpuid = location.cpuid();
+    pid_t tid = location.tid();
+
     perf_event_attr leader_attr = common_perf_event_attrs();
 
     leader_attr.type = counter_collection.leader.type;

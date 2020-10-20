@@ -211,11 +211,19 @@ std::unordered_map<pid_t, std::string> get_comms_for_running_processes()
     return ret;
 }
 
-void try_pin_to_cpu(int cpu, pid_t pid)
+void try_pin_to_location(Location location)
 {
     cpu_set_t cpumask;
     CPU_ZERO(&cpumask);
-    CPU_SET(cpu, &cpumask);
+    if(location.type = LocationType::THREAD)
+    {
+        //Copy affinity from mentioned thread
+        sched_getaffinity(location.location, sizeof(cpumask), &cpumask);
+    }
+    else
+    {
+        CPU_SET(location.location, &cpumask);
+    }
     auto ret = sched_setaffinity(pid, sizeof(cpumask), &cpumask);
     if (ret != 0)
     {

@@ -44,7 +44,7 @@ public:
     void run();
 
 private:
-    std::map<int, CpuMonitor> monitors_;
+    std::map<int, LocationMonitor> monitors_;
 };
 } // namespace monitor
 } // namespace lo2s

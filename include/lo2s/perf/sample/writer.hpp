@@ -54,8 +54,7 @@ namespace sample
 class Writer : public Reader<Writer>
 {
 public:
-    Writer(pid_t pid, pid_t tid, int cpu, monitor::MainMonitor& monitor, trace::Trace& trace,
-           otf2::writer::local& otf2_writer, bool enable_on_exec);
+    Writer(Location location, monitor::MainMonitor& monitor, trace::Trace& trace, bool enable_on_exec);
     ~Writer();
 
 public:
@@ -68,15 +67,6 @@ public:
     bool handle(const Reader::RecordSwitchType* context_switch);
 #endif
 
-    otf2::writer::local& otf2_writer()
-    {
-        return otf2_writer_;
-    }
-
-    otf2::definition::location location() const
-    {
-        return otf2_writer_.location();
-    }
     void end();
 
 private:
@@ -90,9 +80,7 @@ private:
 
     otf2::chrono::time_point adjust_timepoints(otf2::chrono::time_point tp);
 
-    pid_t pid_;
-    pid_t tid_;
-    int cpuid_;
+    Location location_;
 
     monitor::MainMonitor& monitor_;
 

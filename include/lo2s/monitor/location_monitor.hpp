@@ -40,31 +40,13 @@ extern "C"
 
 namespace lo2s
 {
-class ProcessInfo;
-
 namespace monitor
 {
 
-class ThreadMonitor : public PollMonitor
+class LocationMonitor : public PollMonitor
 {
 public:
-    ThreadMonitor(pid_t pid, pid_t tid, ProcessMonitor& parent_monitor, bool enable_on_exec);
-
-    void stop() override;
-
-private:
-    void check_affinity(bool force = false);
-
-public:
-    pid_t pid() const
-    {
-        return pid_;
-    }
-
-    pid_t tid() const
-    {
-        return tid_;
-    }
+    LocationMonitor(Location location, Main_monitor &parent, bool enable_on_exec);
 
     void initialize_thread() override;
     void finalize_thread() override;
@@ -72,17 +54,17 @@ public:
 
     std::string group() const override
     {
-        return "lo2s::ThreadMonitor";
+        return "lo2s::LocationMonitor";
     }
 
 private:
-    pid_t pid_;
-    pid_t tid_;
-
-    cpu_set_t affinity_mask_;
+    Location location_;
 
     std::unique_ptr<perf::sample::Writer> sample_writer_;
-    std::unique_ptr<perf::counter::ProcessWriter> counter_writer_;
+    std::unique_ptr<perf::counter::Writer> counter_writer_;
+#ifndef USE_PERF_RECORD_SWITCH
+    std::unique_ptr<perf::tracepoint::SwitchWriter> switch_writer_;
+#endif
 };
 } // namespace monitor
 } // namespace lo2s

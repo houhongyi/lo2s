@@ -47,7 +47,7 @@ template <class T>
 class Reader : public EventReader<T>
 {
 public:
-    Reader(pid_t tid, int cpuid, const CounterCollection& counter_collection, bool enable_on_exec);
+    Reader(Location location, const CounterCollection& counter_collection, bool enable_on_exec);
 
     struct RecordSampleType
     {

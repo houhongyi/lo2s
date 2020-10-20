@@ -64,6 +64,11 @@ struct ByPackageTag
 };
 using ByPackage = SimpleKeyType<int, ByPackageTag>;
 
+struct ByLocationTag
+{
+};
+using ByLocation = SimpleKeyType<struct Location, ByLocationTag>;
+
 struct ByCpuTag
 {
 };
@@ -124,12 +129,12 @@ struct Holder<otf2::definition::string>
 template <>
 struct Holder<otf2::definition::location_group>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::location_group, ByString>;
+    using type = otf2::lookup_definition_holder<otf2::definition::location_group, ByLocation>;
 };
 template <>
 struct Holder<otf2::definition::location>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::location, ByString>;
+    using type = otf2::lookup_definition_holder<otf2::definition::location, ByLocation>;
 };
 template <>
 struct Holder<otf2::definition::region>
@@ -154,7 +159,7 @@ struct Holder<otf2::definition::comm>
 template <>
 struct Holder<otf2::definition::comm_group>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::comm_group, ByString>;
+    using type = otf2::lookup_definition_holder<otf2::definition::comm_group, ByLocation>;
 };
 } // namespace trace
 } // namespace lo2s

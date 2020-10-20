@@ -52,7 +52,7 @@ public:
     void update_process_name(pid_t pid, const std::string& name) override;
 
 private:
-    std::map<pid_t, ThreadMonitor> threads_;
+    std::map<pid_t, LocationMonitor> threads_;
 };
 } // namespace monitor
 } // namespace lo2s

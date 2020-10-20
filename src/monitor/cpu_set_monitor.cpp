@@ -50,7 +50,7 @@ CpuSetMonitor::CpuSetMonitor() : MainMonitor()
         Log::debug() << "Create cstate recorder for cpu #" << cpu.id;
 
         monitors_.emplace(std::piecewise_construct, std::forward_as_tuple(cpu.id),
-                          std::forward_as_tuple(cpu.id, *this));
+                          std::forward_as_tuple(CpuLocation(cpu.id), *this, false));
     }
 }
 
