@@ -148,8 +148,8 @@ set(SOURCE_FILES
 
     src/perf/counter/counter_collection.cpp
     src/perf/counter/counter_buffer.cpp
-    src/perf/counter/reader.cpp
-    src/perf/counter/writer.cpp
+    src/perf/counter/group/reader.cpp
+    src/perf/counter/group/writer.cpp
 
     src/perf/sample/writer.cpp
     src/perf/time/converter.cpp src/perf/time/reader.cpp

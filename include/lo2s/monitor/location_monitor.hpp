@@ -22,8 +22,9 @@
 
 #include <lo2s/monitor/fwd.hpp>
 #include <lo2s/monitor/poll_monitor.hpp>
+#include <lo2s/monitor/main_monitor.hpp>
 
-#include <lo2s/perf/counter/process_writer.hpp>
+#include <lo2s/perf/counter/group/writer.hpp>
 #include <lo2s/perf/sample/writer.hpp>
 
 #include <array>
@@ -46,7 +47,7 @@ namespace monitor
 class LocationMonitor : public PollMonitor
 {
 public:
-    LocationMonitor(Location location, Main_monitor &parent, bool enable_on_exec);
+    LocationMonitor(Location location, MainMonitor &parent, bool enable_on_exec);
 
     void initialize_thread() override;
     void finalize_thread() override;

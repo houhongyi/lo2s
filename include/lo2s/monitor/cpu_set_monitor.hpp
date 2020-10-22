@@ -23,7 +23,7 @@
 
 #include <lo2s/monitor/main_monitor.hpp>
 
-#include <lo2s/monitor/cpu_monitor.hpp>
+#include <lo2s/monitor/location_monitor.hpp>
 
 #include <vector>
 

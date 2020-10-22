@@ -48,8 +48,7 @@ public:
     {
     }
 
-    virtual void insert_thread([[maybe_unused]] pid_t pid, [[maybe_unused]] pid_t tid,
-                               [[maybe_unused]] std::string name,
+    virtual void insert_thread([[maybe_unused]] pid_t ptid, [[maybe_unused]] pid_t tid,
                                [[maybe_unused]] bool spawn) override
     {
     }

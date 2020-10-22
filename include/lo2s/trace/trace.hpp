@@ -166,14 +166,14 @@ public:
     const otf2::definition::location& location(const Location& location)
     {
         const auto& intern_location = registry_.emplace<otf2::definition::location>(ByLocation(location),
-                intern(location.name()), registry_.get<otf2::definition::location_group>(ByString(groups_[location])),
+                intern(location.name()), registry_.get<otf2::definition::location_group>(ByLocation(groups_[location])),
                     otf2::definition::location::location_type::cpu_thread);
         
         comm_locations_group_.add_member(intern_location);
 
         if(registry_.has<otf2::definition::comm_group>(ByLocation(groups_[location])))
         {
-            registry_.get<otf2::definitiion::comm_group>(ByString(groups_[location])).add_member(intern_location);
+            registry_.get<otf2::definition::comm_group>(ByLocation(groups_[location])).add_member(intern_location);
         }
         return intern_location;
     }
@@ -237,7 +237,7 @@ private:
 
     const otf2::definition::system_tree_node& system_tree_root_node_;
 
-    std::map<Location, Location> groups;
+    std::map<Location, Location> groups_;
 };
 } // namespace trace
 } // namespace lo2s

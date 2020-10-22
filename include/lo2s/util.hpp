@@ -74,17 +74,24 @@ private:
  {
      THREAD,
      CPU,
-     SAMPLE_CPU
+     SAMPLE_CPU,
+     UNKOWN
  };
 
  struct Location
  {
-     Location(LocationType type, int location)
-         : type(type), location(location)
-     {
-     }
      LocationType type;
      int location;
+
+     Location()
+         : type(LocationType::UNKOWN), location(-1)
+     {
+     }
+
+     Location(LocationType t, int l)
+         : type(t), location(l)
+     {
+     }
 
      std::string name() const
      {
@@ -103,11 +110,25 @@ private:
 
      pid_t tid() const
      {
-         return (type == LocationType.THREAD ? location : -1);
+         return (type == LocationType::THREAD ? location : -1);
      }
      int cpuid() const
      {
-         return (type != LocationType.THREAD ? location : -1);
+         return (type != LocationType::THREAD ? location : -1);
+     }
+
+     //Needed becausse this is used as a Key in some Structures.
+     //Simply order (arbitrarly) by type first, then by location
+     friend bool operator<(const Location& lhs, const Location& rhs)
+     {
+         if(lhs.type != rhs.type)
+         {
+             return lhs.type < rhs.type;
+         }
+         else
+         {
+             return lhs.location < rhs.location;
+         }
      }
  };
 
@@ -130,7 +151,7 @@ private:
  struct SampleCpuLocation : public Location
  {
      SampleCpuLocation(int cpuid)
-         : Location(LocationType::SAMPLE_CPU, cpuid);
+         : Location(LocationType::SAMPLE_CPU, cpuid)
      {
      }
  };

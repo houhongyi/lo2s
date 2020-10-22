@@ -1,9 +1,6 @@
 #include <lo2s/time/time.hpp>
 
-#include <otf2xx/definition/metric_class.hpp>
-#include <otf2xx/definition/metric_instance.hpp>
-#include <otf2xx/event/metric_event.hpp>
-#include <otf2xx/local/writer.hpp>
+#include <otf2xx/otf2.hpp>
 
 namespace lo2s
 {

@@ -23,6 +23,7 @@
 #pragma once
 #include <lo2s/address.hpp>
 #include <lo2s/line_info.hpp>
+#include <lo2s/util.hpp>
 
 #include <otf2xx/otf2.hpp>
 
@@ -58,16 +59,21 @@ struct ByCore
     }
 };
 
+struct ByLocation
+{
+    using key_type = Location;
+    key_type key;
+
+    ByLocation(Location location) : key(location)
+    {
+    }
+};
+
 // Can i haz strong typedef
 struct ByPackageTag
 {
 };
 using ByPackage = SimpleKeyType<int, ByPackageTag>;
-
-struct ByLocationTag
-{
-};
-using ByLocation = SimpleKeyType<struct Location, ByLocationTag>;
 
 struct ByCpuTag
 {
@@ -154,7 +160,7 @@ struct Holder<otf2::definition::source_code_location>
 template <>
 struct Holder<otf2::definition::comm>
 {
-    using type = otf2::lookup_definition_holder<otf2::definition::comm, ByProcess>;
+    using type = otf2::lookup_definition_holder<otf2::definition::comm, ByLocation>;
 };
 template <>
 struct Holder<otf2::definition::comm_group>
