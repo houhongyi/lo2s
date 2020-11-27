@@ -12,8 +12,9 @@ class MetricWriter
 {
 public:
     MetricWriter(Location location, const otf2::definition::metric_class& metric_class)
-        : time_converter_(time::Converter::instance())
-        writer_(Trace().metric_writer(location)),metric_instance_(trace::Trace::instance().metric_instance(metric_class, writer_.location(), trace::Trace::instance().location(location)), metric_event_(otf2::chrono::genesis(), metric_instance_)
+        : time_converter_(time::Converter::instance()),
+        writer_(trace::Trace::instance().metric_writer(location)),metric_instance_(trace::Trace::instance().metric_instance(metric_class, writer_.location(), trace::Trace::instance().location(location))), metric_event_(otf2::chrono::genesis(), metric_instance_)
+                {}
 protected:
     time::Converter time_converter_;
     otf2::writer::local& writer_;

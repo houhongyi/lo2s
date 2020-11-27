@@ -20,7 +20,6 @@
  */
 
 #include <lo2s/monitor/process_monitor.hpp>
-#include <lo2s/monitor/thread_monitor.hpp>
 #include <lo2s/process_info.hpp>
 
 namespace lo2s

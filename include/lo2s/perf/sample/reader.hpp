@@ -81,7 +81,7 @@ protected:
 
     Reader(Location location, bool enable_on_exec) : has_cct_(config().enable_cct)
     {
-        Log::debug() << "initializing event_reader for:" << location.name();
+        Log::debug() << "initializing event_reader for:" << location.name()
                      << ", enable_on_exec: " << enable_on_exec;
 
         struct perf_event_attr perf_attr = common_perf_event_attrs();

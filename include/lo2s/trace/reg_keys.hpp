@@ -64,7 +64,7 @@ struct ByLocation
     using key_type = Location;
     key_type key;
 
-    ByLocation(Location location) : key(location)
+    explicit ByLocation(key_type key) : key(key)
     {
     }
 };

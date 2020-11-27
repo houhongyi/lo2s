@@ -181,7 +181,7 @@ public:
     otf2::definition::comm& process_comm(Location location)
     {
         std::lock_guard<std::recursive_mutex> guard(mutex_);
-        return registry_.get<otf2::definition::comm>(groups_[location]);
+        return registry_.get<otf2::definition::comm>(ByLocation(groups_[location]));
     }
 
 private:

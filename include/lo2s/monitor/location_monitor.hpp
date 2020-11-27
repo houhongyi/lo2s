@@ -62,7 +62,7 @@ private:
     Location location_;
 
     std::unique_ptr<perf::sample::Writer> sample_writer_;
-    std::unique_ptr<perf::counter::Writer> counter_writer_;
+    std::unique_ptr<perf::counter::group::Writer> counter_writer_;
 #ifndef USE_PERF_RECORD_SWITCH
     std::unique_ptr<perf::tracepoint::SwitchWriter> switch_writer_;
 #endif

@@ -61,7 +61,7 @@ public:
     }
 
 protected:
-    trace::Trace trace_;
+    trace::Trace &trace_;
 
     std::map<pid_t, ProcessInfo> process_infos_;
     metric::plugin::Metrics metrics_;
