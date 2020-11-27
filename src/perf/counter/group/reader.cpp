@@ -19,8 +19,8 @@
  * along with lo2s.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <lo2s/perf/counter/abstract_writer.hpp>
-#include <lo2s/perf/counter/reader.hpp>
+#include <lo2s/perf/counter/group/writer.hpp>
+#include <lo2s/perf/counter/group/reader.hpp>
 
 #include <lo2s/build_config.hpp>
 #include <lo2s/config.hpp>
@@ -87,7 +87,6 @@ int open_counter(pid_t tid, int cpuid, const EventDescription& desc, int group_f
 
 template <class T>
 Reader<T>::Reader(Location location, const CounterCollection& counter_collection,
-    src/perf/counter/process_writer.cpp
                   bool enable_on_exec)
 : counter_buffer_(counter_collection.counters.size() + 1)
 {
@@ -165,8 +164,6 @@ Reader<T>::Reader(Location location, const CounterCollection& counter_collection
     }
     EventReader<T>::init_mmap(group_leader_fd_);
 }
-
-template class Reader<AbstractWriter>;
 } // namespace counter
 } // namespace perf
 } // namespace lo2s

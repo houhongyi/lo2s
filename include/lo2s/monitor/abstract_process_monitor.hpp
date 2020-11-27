@@ -44,6 +44,7 @@ public:
     virtual void exit_thread(pid_t tid) = 0;
 
     virtual void update_process_name(pid_t pid, const std::string& name) = 0;
+    virtual bool is_process(pid_t pid) = 0;
 };
 } // namespace monitor
 } // namespace lo2s

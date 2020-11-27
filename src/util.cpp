@@ -215,7 +215,7 @@ void try_pin_to_location(Location location)
 {
     cpu_set_t cpumask;
     CPU_ZERO(&cpumask);
-    if(location.type = LocationType::THREAD)
+    if(location.type == LocationType::THREAD)
     {
         //Copy affinity from mentioned thread
         sched_getaffinity(location.location, sizeof(cpumask), &cpumask);
@@ -224,7 +224,7 @@ void try_pin_to_location(Location location)
     {
         CPU_SET(location.location, &cpumask);
     }
-    auto ret = sched_setaffinity(pid, sizeof(cpumask), &cpumask);
+    auto ret = sched_setaffinity(0, sizeof(cpumask), &cpumask);
     if (ret != 0)
     {
         Log::error() << "sched_setaffinity failed with: " << make_system_error().what();

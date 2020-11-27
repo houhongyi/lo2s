@@ -19,7 +19,7 @@
  * along with lo2s.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <lo2s/monitor/thread_monitor.hpp>
+#include <lo2s/monitor/location_monitor.hpp>
 
 #include <lo2s/config.hpp>
 #include <lo2s/log.hpp>
@@ -71,7 +71,7 @@ LocationMonitor::LocationMonitor(Location location, MainMonitor& parent, bool en
 
 void LocationMonitor::initialize_thread()
 {
-    try_pin_to_location();
+    try_pin_to_location(location_);
 }
 
 void LocationMonitor::finalize_thread()
@@ -84,9 +84,9 @@ void LocationMonitor::finalize_thread()
 
 void LocationMonitor::monitor(int fd)
 {
-    if(location_.type = LocationType::THREAD)
+    if(location_.type == LocationType::THREAD)
     {
-        try_pin_to_location();
+        try_pin_to_location(location_);
     }
 
     if (sample_writer_ &&
@@ -100,11 +100,13 @@ void LocationMonitor::monitor(int fd)
     {
         counter_writer_->read();
     }
+#ifndef USE_PERF_RECORD_SWITCH
     if (switch_writer_ &&
             (fd == timer_pfd().fd || fd == stop_pfd.fd))
     {
         switch_writer_->read();
     }
+#endif
 }
 } // namespace monitor
 } // namespace lo2s

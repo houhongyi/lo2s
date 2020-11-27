@@ -50,7 +50,10 @@ public:
     void exit_thread(pid_t tid) override;
 
     void update_process_name(pid_t pid, const std::string& name) override;
-
+    bool is_process(pid_t pid) override
+    {
+        return trace_.is_group(ThreadLocation(pid));
+    }
 private:
     std::map<pid_t, LocationMonitor> threads_;
 };

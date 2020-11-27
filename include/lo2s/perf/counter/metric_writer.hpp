@@ -1,4 +1,6 @@
-#include <lo2s/time/time.hpp>
+#include <lo2s/perf/time/converter.hpp>
+#include <lo2s/util.hpp>
+#include <lo2s/trace/trace.hpp>
 
 #include <otf2xx/otf2.hpp>
 

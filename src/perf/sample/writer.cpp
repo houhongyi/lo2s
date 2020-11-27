@@ -53,7 +53,7 @@ namespace sample
 {
 
 Writer::Writer(Location location, monitor::MainMonitor& Monitor, trace::Trace& trace, bool enable_on_exec)
-: Reader(location enable_on_exec), location_(location), monitor_(Monitor),
+: Reader(location, enable_on_exec), location_(location), monitor_(Monitor),
   trace_(trace), otf2_writer_(trace.sample_writer(location)),
   cpuid_metric_instance_(trace.metric_instance(trace.cpuid_metric_class(), otf2_writer_.location(),
                                                otf2_writer_.location())),
@@ -158,9 +158,9 @@ bool Writer::handle(const Reader::RecordSampleType* sample)
 bool Writer::handle(const Reader::RecordMmapType* mmap_event)
 {
     // Since this is an mmap record (as opposed to mmap2), it will only be generated for executable
-    if (location_ = ThreadLocation(mmap_event->tid))
+    if (location_ == ThreadLocation(mmap_event->tid))
     {
-        Log::warn() << "Inconsistent mmap expected " << location_.name << ", actual "
+        Log::warn() << "Inconsistent mmap expected " << location_.name() << ", actual "
                     << mmap_event->tid;
     }
     Log::debug() << "encountered mmap event for " << location_.name() << " "
@@ -173,7 +173,7 @@ bool Writer::handle(const Reader::RecordMmapType* mmap_event)
 
 void Writer::update_current_thread(pid_t pid, pid_t tid, otf2::chrono::time_point tp)
 {
-    if (first_event_ && location.type == LocationType::THREAD)
+    if (first_event_ && location_.type == LocationType::THREAD)
     {
         otf2_writer_ << otf2::event::thread_begin(tp, trace_.process_comm(location_), -1);
         first_event_ = false;
@@ -320,7 +320,7 @@ void Writer::end()
             // time::now(), which is a monotone clock, therefore it is before
             // the call to time::now() from above.  If any samples were written,
             // the required check has occured in handle() above.
-            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(location),
+            otf2_writer_ << otf2::event::thread_begin(first_time_point_, trace_.process_comm(location_),
                                                       -1);
         }
 
@@ -328,7 +328,7 @@ void Writer::end()
         // ensure that first_time_point_ <= last_time_point_, therefore samples
         // on this location span a non-negative amount of time between the
         // thread_begin and thread_end event.
-        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(location), -1);
+        otf2_writer_ << otf2::event::thread_end(last_time_point_, trace_.process_comm(location_), -1);
     }
 
     trace_.add_threads(comms_);

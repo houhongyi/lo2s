@@ -144,7 +144,7 @@ Trace::Trace()
     add_lo2s_property("UNAME::MACHINE", std::string{ uname.machine });
 
     registry_.create<otf2::definition::location_group>(
-        ByString(ThreadLocation(METRIC_PID)), intern("Metric Location Group"),
+        ByLocation(ThreadLocation(METRIC_PID)), intern("Metric Location Group"),
         otf2::definition::location_group::location_group_type::process, system_tree_root_node_);
 
     registry_.create<otf2::definition::system_tree_node_domain>(
@@ -174,7 +174,7 @@ Trace::Trace()
     }
     for (auto& cpu : sys.cpus())
     {
-        const auto& CpuLocation cpu_location(cpu.id);
+        const auto& cpu_location = CpuLocation(cpu.id);
         const auto& name = intern(cpu_location.name());
 
         Log::debug() << "Registering cpu " << cpu.id << "@" << cpu.core_id << ":" << cpu.package_id;
@@ -310,7 +310,7 @@ void Trace::update_process_name(pid_t pid, const std::string& name)
     try
     {
         registry_.get<otf2::definition::system_tree_node>(ByProcess(pid)).name(iname);
-        registry_.get<otf2::definition::location_group>(ByProcess(pid)).name(iname);
+        registry_.get<otf2::definition::location_group>(ByLocation(ThreadLocation(pid))).name(iname);
         registry_.get<otf2::definition::comm_group>(ByLocation(ThreadLocation(pid))).name(iname);
         registry_.get<otf2::definition::comm>(ByLocation(ThreadLocation(pid))).name(iname);
 
@@ -339,7 +339,7 @@ void Trace::update_thread_name(pid_t tid, const std::string& name)
 
         if (registry_.has<otf2::definition::location>(ByLocation(ThreadLocation(tid))))
         {
-            registry_.get<otf2::definition::location>(ByString(ThreadLocation(tid))).name(iname);
+            registry_.get<otf2::definition::location>(ByLocation(ThreadLocation(tid))).name(iname);
         }
 
         thread_names_[tid] = name;
@@ -365,21 +365,20 @@ void Trace::add_lo2s_property(const std::string& name, const std::string& value)
         system_tree_root_node_, intern(property_name), otf2::attribute_value{ intern(value) });
 }
 
-otf2::writer::local& Trace::sample_writer(const std::string& name)
+otf2::writer::local& Trace::sample_writer(const Location& writer_location)
 {
     // TODO we call this function in a hot-loop, locking doesn't sound like a good idea
     std::lock_guard<std::recursive_mutex> guard(mutex_);
 
-    return archive_(location(name));
+    return archive_(location(writer_location));
 }
 
-otf2::writer::local& Trace::metric_writer(const Location& location)
+otf2::writer::local& Trace::metric_writer(const Location& writer_location)
 {
-    auto metric_name = fmt::format("metrics for {}", location.name());
+    auto metric_name = fmt::format("metrics for {}", writer_location.name());
     const auto& intern_location = registry_.emplace<otf2::definition::location>(
-            ByString(metric_name), intern(metric_name),
-}
-            registry_.get<otf2::definition::location_group>(ByLocation(groups_[location])),
+            ByLocation(writer_location), intern(metric_name),
+            registry_.get<otf2::definition::location_group>(ByLocation(groups_[writer_location])),
             otf2::definition::location::location_type::metric
             );
     return archive_(intern_location);
@@ -391,7 +390,7 @@ otf2::writer::local& Trace::metric_writer(const Location& location)
 otf2::writer::local& Trace::non_unique_metric_writer(const std::string& name)
 {
     const auto& location = registry_.create<otf2::definition::location>(
-        intern(name), registry_.get<otf2::definition::location_group>(ByLocation(ThreadLocation(METRIC_PID)),
+        intern(name), registry_.get<otf2::definition::location_group>(ByLocation(ThreadLocation(METRIC_PID))),
         otf2::definition::location::location_type::metric);
     return archive_(location);
 }
@@ -582,7 +581,7 @@ void Trace::add_thread_exclusive(pid_t tid, const std::string& name,
                                   std::forward_as_tuple(thread_cctx));
 }
 
-void Trace::add_monitored_thread(pid_t ptid, pid_t tid);
+void Trace::add_monitored_thread(pid_t ptid, pid_t tid)
 {
     std::lock_guard<std::recursive_mutex> guard(mutex_);
     //Use name from parent for now, we get the real name
@@ -590,11 +589,11 @@ void Trace::add_monitored_thread(pid_t ptid, pid_t tid);
     auto name = thread_names_.find(ptid);
     if(name == thread_names_.end())
     {
-        add_thread_exclusive(tid, "<unknown>", mutex_);
+        add_thread_exclusive(tid, "<unknown>", guard);
     }
     else
     {
-        add_thread_exclusive(tid, name.second, mutex_);
+        add_thread_exclusive(tid, name->second, guard);
     }
 
     try

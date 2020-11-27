@@ -183,6 +183,11 @@ public:
         std::lock_guard<std::recursive_mutex> guard(mutex_);
         return registry_.get<otf2::definition::comm>(ByLocation(groups_[location]));
     }
+    
+    bool is_group(Location location)
+    {
+        return groups_[location] == location;
+    }
 
 private:
     /** Add a thread with the required lock (#mutex_) held.

@@ -226,7 +226,7 @@ void ProcessController::handle_ptrace_event(pid_t child, int event)
             }
             else
             {
-                Log::info() << "Thread  " << child << " in process " << pid << " is about to exit";
+                Log::info() << "Thread  " << child << " in process " << " is about to exit";
                 monitor_.exit_thread(child);
             }
         }

@@ -65,6 +65,11 @@ public:
                                      [[maybe_unused]] const std::string& name) override
     {
     }
+    
+    virtual bool is_process([[maybe_unused]] pid_t pid)
+    {
+        return false;
+    }
 };
 } // namespace monitor
 } // namespace lo2s

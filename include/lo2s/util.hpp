@@ -130,6 +130,12 @@ private:
              return lhs.location < rhs.location;
          }
      }
+
+     friend bool operator==(const Location& lhs, const
+             Location& rhs)
+     {
+         return lhs.type == rhs.type && lhs.location == rhs.location;
+     }
  };
 
  struct CpuLocation : public Location

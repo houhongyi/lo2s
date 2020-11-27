@@ -41,20 +41,18 @@ void ProcessMonitor::insert_process(pid_t pid, pid_t ppid, std::string proc_name
     }
 
     trace_.add_process(pid, ppid, proc_name);
-    insert_thread(pid, pid, proc_name, spawn);
+    insert_thread(pid, pid, spawn);
 }
 
-void ProcessMonitor::insert_thread(pid_t ptid, pid_t tid, std::string name, bool spawn)
+void ProcessMonitor::insert_thread(pid_t ptid, pid_t tid, bool spawn)
 {
-    trace_.add_thread(tid, name);
+    trace_.add_monitored_thread(ptid, tid);
 
     if (config().sampling || !perf::counter::requested_counters().counters.empty())
     {
         threads_.emplace(std::piecewise_construct, std::forward_as_tuple(tid),
                          std::forward_as_tuple(ThreadLocation(tid), *this, spawn));
     }
-
-    trace_.update_thread_name(tid, name);
 }
 
 void ProcessMonitor::update_process_name(pid_t pid, const std::string& name)
